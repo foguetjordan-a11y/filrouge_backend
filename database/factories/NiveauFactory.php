@@ -4,7 +4,6 @@ namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use App\Models\Niveau;
-use App\Models\Filiere;
 
 class NiveauFactory extends Factory
 {
@@ -23,10 +22,7 @@ class NiveauFactory extends Factory
         $niveau = $this->faker->randomElement($niveaux);
 
         return [
-            'nom' => $niveau['nom'],
-            'code' => $niveau['code'],
-            'filiere_id' => Filiere::factory(),
-            'frais_inscription' => $niveau['frais'],
+            'libelle' => $niveau['nom'],
             'created_at' => now(),
             'updated_at' => now(),
         ];
