@@ -16,7 +16,9 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'role_id',
         'status',
+        'complete_profile',
         // Informations personnelles complètes
         'nom',
         'prenom',
@@ -58,6 +60,11 @@ class User extends Authenticatable
         return $this->hasMany(Enrollement::class);
     }
 
+    public function role()
+    {
+        return $this->belongsTo(Role::class, 'role_id');
+    }
+
     public function quitus()
     {
         return $this->hasOne(Quitus::class);
@@ -74,6 +81,47 @@ class User extends Authenticatable
         return $this->hasMany(Invoice::class);
     }
 
+    // ── Méthodes de statut ───────────────────────────────────────
+
+    public function isPending(): bool
+    {
+        return $this->status === 'pending';
+    }
+
+    public function isApproved(): bool
+    {
+        return $this->status === 'approved';
+    }
+
+    public function isRejected(): bool
+    {
+        return $this->status === 'rejected';
+    }
+
+    // ── Méthodes de rôle ─────────────────────────────────────────
+
+    public function isAdmin(): bool
+    {
+        return $this->role_id === 1 || $this->role === 'admin';
+    }
+
+    public function isGestion(): bool
+    {
+        return $this->role_id === 2 || $this->role === 'gestion';
+    }
+
+    public function isEtudiant(): bool
+    {
+        return $this->role_id === 3 || $this->role === 'etudiant';
+    }
+
+    // ── Profil ───────────────────────────────────────────────────
+
+    public function hasCompleteProfile(): bool
+    {
+        return (bool) ($this->complete_profile ?? $this->is_profile_complete ?? false);
+    }
+
     // Méthodes utilitaires pour le profil
     public function getFullNameAttribute(): string
     {
@@ -81,6 +129,11 @@ class User extends Authenticatable
             return $this->prenom . ' ' . $this->nom;
         }
         return $this->name ?? 'Utilisateur';
+    }
+
+    public function generateMatricule(): string
+    {
+        return 'ETU' . str_pad($this->id, 8, '0', STR_PAD_LEFT);
     }
 
     public function getAgeAttribute(): ?int

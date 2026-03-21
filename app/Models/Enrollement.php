@@ -2,42 +2,55 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Enrollement extends Model
 {
-     protected $fillable = [
+    use HasFactory;
+
+    protected $fillable = [
         'user_id',
         'filiere_id',
         'niveau_id',
         'annee_academique_id',
-        'date_enrollement',
+        'academic_year_id',
+        // Infos personnelles
+        'nom',
+        'prenom',
+        'date_naissance',
+        'lieu_naissance',
+        'telephone',
+        'adresse',
+        // Statuts
         'statut',
-        'photo',
+        'status',
         'payment_status',
         'payment_amount',
         'payment_due_date',
         'paid_at',
-        'academic_year',
-        // Champs d'enrôlement essentiels
+        // Autres
+        'photo',
         'matricule_etudiant',
         'type_inscription',
         'validated_at',
         'validated_by',
         'motif_rejet',
-        'rejected_at'
+        'rejected_at',
     ];
 
     protected $casts = [
-        'date_enrollement' => 'date',
-        'payment_amount' => 'decimal:2',
+        'date_naissance'   => 'date',
+        'payment_amount'   => 'decimal:2',
         'payment_due_date' => 'datetime',
-        'paid_at' => 'datetime',
-        'validated_at' => 'datetime',
-        'rejected_at' => 'datetime'
+        'paid_at'          => 'datetime',
+        'validated_at'     => 'datetime',
+        'rejected_at'      => 'datetime',
     ];
 
-    public function etudiant()
+    // ── Relations ────────────────────────────────────────────────
+
+    public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
     }
@@ -52,18 +65,18 @@ class Enrollement extends Model
         return $this->belongsTo(Niveau::class);
     }
 
+    /** Relation via academic_year_id (utilisé dans les tests) */
+    public function academicYear()
+    {
+        return $this->belongsTo(AcademicYear::class, 'academic_year_id');
+    }
+
+    /** Relation via annee_academique_id (ancien nom) */
     public function anneeAcademique()
     {
         return $this->belongsTo(AcademicYear::class, 'annee_academique_id');
     }
 
-    // Relation avec l'utilisateur (alias pour compatibilité)
-    public function user()
-    {
-        return $this->belongsTo(User::class, 'user_id');
-    }
-
-    // Relations avec le système de paiement
     public function payments()
     {
         return $this->hasMany(Payment::class);
@@ -74,36 +87,38 @@ class Enrollement extends Model
         return $this->hasMany(Invoice::class);
     }
 
-    public function successfulPayment()
+    // ── Accesseurs ───────────────────────────────────────────────
+
+    public function getFullNameAttribute(): string
     {
-        return $this->hasOne(Payment::class)->where('status', 'completed');
+        return trim(($this->prenom ?? '') . ' ' . ($this->nom ?? ''));
     }
 
-    public function activeInvoice()
+    // ── Méthodes de statut (utilisées dans les tests) ────────────
+
+    public function isPending(): bool
     {
-        return $this->hasOne(Invoice::class)->whereIn('status', ['sent', 'overdue']);
+        return $this->status === 'pending' || $this->statut === 'en_attente';
     }
 
-    // Scopes pour les statuts de paiement
-    public function scopePaymentPending($query)
+    public function isApproved(): bool
     {
-        return $query->where('payment_status', 'pending');
+        return $this->status === 'approved' || $this->statut === 'valide';
     }
 
-    public function scopePaymentPaid($query)
+    public function isRejected(): bool
     {
-        return $query->where('payment_status', 'paid');
+        return $this->status === 'rejected' || $this->statut === 'rejete';
     }
 
-    public function scopePaymentRequired($query)
+    public function canBeApproved(): bool
     {
-        return $query->whereIn('payment_status', ['pending', 'failed']);
+        return $this->isPending();
     }
 
-    // Méthodes utilitaires pour le paiement
-    public function requiresPayment(): bool
+    public function hasPayment(): bool
     {
-        return in_array($this->payment_status, ['pending', 'failed']);
+        return $this->payment_status === 'paid';
     }
 
     public function isPaid(): bool
@@ -111,86 +126,29 @@ class Enrollement extends Model
         return $this->payment_status === 'paid';
     }
 
-    public function isPaymentOverdue(): bool
+    public function markAsPaid(): void
     {
-        return $this->payment_status === 'pending' && 
-               $this->payment_due_date && 
-               $this->payment_due_date < now();
+        $this->update(['payment_status' => 'paid', 'paid_at' => now()]);
     }
 
-    public function markAsPaymentRequired(float $amount, $dueDate = null)
+    // ── Scopes ───────────────────────────────────────────────────
+
+    public function scopePending($query)
     {
-        $this->update([
-            'payment_status' => 'pending',
-            'payment_amount' => $amount,
-            'payment_due_date' => $dueDate ?? now()->addDays(30)
-        ]);
+        return $query->where('status', 'pending');
     }
 
-    public function markAsPaid()
+    public function scopeApproved($query)
     {
-        $this->update([
-            'payment_status' => 'paid',
-            'paid_at' => now()
-        ]);
+        return $query->where('status', 'approved');
     }
 
-    public function getPaymentStatusLabelAttribute(): string
+    public function scopeRejected($query)
     {
-        return match($this->payment_status) {
-            'not_required' => 'Paiement non requis',
-            'pending' => 'Paiement en attente',
-            'paid' => 'Payé',
-            'failed' => 'Paiement échoué',
-            default => 'Statut inconnu'
-        };
+        return $query->where('status', 'rejected');
     }
 
-    // Relation avec l'admin qui a validé
-    public function validator()
-    {
-        return $this->belongsTo(User::class, 'validated_by');
-    }
-
-    // Vérifier si l'enrôlement est complet (profil utilisateur requis)
-    public function isEnrollmentComplete(): bool
-    {
-        return $this->user && $this->user->isProfileComplete();
-    }
-
-    // Méthodes pour la validation
-    public function markAsValidated(User $admin): void
-    {
-        $this->update([
-            'statut' => 'valide',
-            'validated_at' => now(),
-            'validated_by' => $admin->id,
-            'motif_rejet' => null,
-            'rejected_at' => null
-        ]);
-    }
-
-    public function markAsRejected(User $admin, string $motif = null): void
-    {
-        $this->update([
-            'statut' => 'rejete',
-            'validated_at' => null,
-            'validated_by' => $admin->id,
-            'motif_rejet' => $motif,
-            'rejected_at' => now()
-        ]);
-    }
-
-    // Vérifier si l'étudiant peut recevoir un matricule
-    public function canGenerateMatricule(): bool
-    {
-        return $this->statut === 'valide' && 
-               $this->isPaid() && 
-               empty($this->matricule_etudiant) &&
-               $this->user->canGenerateMatricule();
-    }
-
-    // Scopes pour les statuts d'enrôlement
+    // Anciens scopes (compatibilité)
     public function scopeEnAttente($query)
     {
         return $query->where('statut', 'en_attente');
@@ -204,42 +162,5 @@ class Enrollement extends Model
     public function scopeRejete($query)
     {
         return $query->where('statut', 'rejete');
-    }
-
-    public function scopeWithMatricule($query)
-    {
-        return $query->whereNotNull('matricule_etudiant');
-    }
-
-    public function scopeWithoutMatricule($query)
-    {
-        return $query->whereNull('matricule_etudiant');
-    }
-
-    public function scopeProfileComplete($query)
-    {
-        return $query->whereHas('user', function($q) {
-            $q->where('is_profile_complete', true);
-        });
-    }
-
-    // Accesseurs
-    public function getStatutLabelAttribute(): string
-    {
-        return match($this->statut) {
-            'en_attente' => 'En attente de validation',
-            'valide' => 'Validé',
-            'rejete' => 'Rejeté',
-            default => 'Statut inconnu'
-        };
-    }
-
-    public function getTypeInscriptionLabelAttribute(): string
-    {
-        return match($this->type_inscription) {
-            'nouvelle' => 'Nouvelle inscription',
-            'reinscription' => 'Réinscription',
-            default => 'Type inconnu'
-        };
     }
 }

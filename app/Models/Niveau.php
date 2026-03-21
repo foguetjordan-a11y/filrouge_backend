@@ -13,39 +13,33 @@ class Niveau extends Model
 
     protected $fillable = [
         'libelle',
+        'nom',
+        'code',
+        'filiere_id',
+        'frais_inscription',
         'description',
-        'ordre'
+        'ordre',
     ];
 
-    /**
-     * Accessor pour compatibilité avec 'nom'
-     */
+    // Sync libelle <-> nom
     public function getNomAttribute()
     {
-        return $this->libelle;
+        return $this->attributes['nom'] ?? $this->attributes['libelle'] ?? null;
     }
 
-    /**
-     * Mutator pour compatibilité avec 'nom'
-     */
     public function setNomAttribute($value)
     {
+        $this->attributes['nom'] = $value;
         $this->attributes['libelle'] = $value;
     }
 
-    /**
-     * Relation avec les enrôlements
-     */
+    public function filiere()
+    {
+        return $this->belongsTo(Filiere::class);
+    }
+
     public function enrollements()
     {
         return $this->hasMany(Enrollement::class, 'niveau_id');
-    }
-
-    /**
-     * Relation avec les filières (si applicable)
-     */
-    public function filieres()
-    {
-        return $this->belongsToMany(Filiere::class, 'filiere_niveau', 'niveau_id', 'filiere_id');
     }
 }

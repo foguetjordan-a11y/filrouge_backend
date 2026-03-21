@@ -29,7 +29,9 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'role' => 'etudiant',
+            'role_id' => 3,
             'status' => 'pending',
+            'complete_profile' => false,
             'remember_token' => Str::random(10),
         ];
     }
@@ -51,28 +53,25 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'role' => 'admin',
+            'role_id' => 1,
             'status' => 'approved',
         ]);
     }
 
-    /**
-     * Create a gestion user.
-     */
     public function gestion(): static
     {
         return $this->state(fn (array $attributes) => [
             'role' => 'gestion',
+            'role_id' => 2,
             'status' => 'approved',
         ]);
     }
 
-    /**
-     * Create an etudiant user.
-     */
     public function etudiant(): static
     {
         return $this->state(fn (array $attributes) => [
             'role' => 'etudiant',
+            'role_id' => 3,
         ]);
     }
 
