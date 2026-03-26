@@ -6,23 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::table('payments', function (Blueprint $table) {
-            $table->string('currency', 10)->default('XOF')->change(); // Augmenter la taille pour supporter FCFA
-        });
+        // Augmenter la taille de currency pour supporter FCFA (10 chars)
+        if (Schema::hasColumn('payments', 'currency')) {
+            Schema::table('payments', function (Blueprint $table) {
+                $table->string('currency', 10)->default('XOF')->change();
+            });
+        }
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::table('payments', function (Blueprint $table) {
-            $table->string('currency', 3)->default('XOF')->change();
-        });
+        if (Schema::hasColumn('payments', 'currency')) {
+            Schema::table('payments', function (Blueprint $table) {
+                $table->string('currency', 3)->default('XOF')->change();
+            });
+        }
     }
 };

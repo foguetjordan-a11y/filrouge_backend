@@ -497,16 +497,25 @@ class PaymentService
         // Statistiques par méthode de paiement
         $paymentsByMethod = (clone $query)
             ->join('payment_methods', 'payments.payment_method_id', '=', 'payment_methods.id')
-            ->selectRaw('payment_methods.name, COUNT(*) as count, SUM(CASE WHEN payments.status = "completed" THEN payments.amount ELSE 0 END) as total_amount')
+            ->selectRaw("payment_methods.name, COUNT(*) as count, SUM(CASE WHEN payments.status = 'completed' THEN payments.amount ELSE 0 END) as total_amount")
             ->groupBy('payment_methods.id', 'payment_methods.name')
             ->get();
 
-        // Évolution mensuelle
-        $monthlyStats = (clone $query)
-            ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as count, SUM(CASE WHEN status = "completed" THEN amount ELSE 0 END) as total_amount')
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get();
+        // Évolution mensuelle (compatible SQLite et MySQL)
+        $driver = \DB::connection()->getDriverName();
+        if ($driver === 'sqlite') {
+            $monthlyStats = (clone $query)
+                ->selectRaw("strftime('%Y-%m', created_at) as month, COUNT(*) as count, SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END) as total_amount")
+                ->groupBy('month')
+                ->orderBy('month')
+                ->get();
+        } else {
+            $monthlyStats = (clone $query)
+                ->selectRaw('DATE_FORMAT(created_at, "%Y-%m") as month, COUNT(*) as count, SUM(CASE WHEN status = "completed" THEN amount ELSE 0 END) as total_amount')
+                ->groupBy('month')
+                ->orderBy('month')
+                ->get();
+        }
 
         return [
             'summary' => [

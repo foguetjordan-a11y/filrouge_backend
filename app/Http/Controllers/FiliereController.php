@@ -14,8 +14,10 @@ class FiliereController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nom' => 'required|string|unique:filieres,nom',
+            'nom'            => 'required|string|unique:filieres,nom',
+            'code'           => 'nullable|string|max:20',
             'departement_id' => 'required|integer|exists:departements,id',
+            'description'    => 'nullable|string',
         ]);
 
         try {

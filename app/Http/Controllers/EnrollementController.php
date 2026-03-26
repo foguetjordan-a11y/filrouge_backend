@@ -23,7 +23,7 @@ class EnrollementController extends Controller
     public function index()
     {
         try {
-            $enrollements = Enrollement::with(['etudiant', 'filiere', 'niveau', 'anneeAcademique'])
+            $enrollements = Enrollement::with(['user', 'filiere', 'niveau', 'academicYear'])
                 ->orderBy('created_at', 'desc')
                 ->get();
             

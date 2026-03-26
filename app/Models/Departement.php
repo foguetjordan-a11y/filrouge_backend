@@ -9,7 +9,7 @@ class Departement extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['nom', 'description', 'chef_departement'];
+    protected $fillable = ['nom', 'code', 'description', 'chef_departement'];
 
     public function filieres()
     {

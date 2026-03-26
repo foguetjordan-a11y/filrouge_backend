@@ -1,6 +1,6 @@
 FROM php:8.2-cli
 
-# Installer les dépendances système
+# Dependances systeme
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
@@ -10,35 +10,33 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Installer les extensions PHP
+# Extensions PHP
 RUN docker-php-ext-install pdo pdo_mysql zip
 
-# Installer Composer
+# Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /app
 
-# Copier les fichiers de dépendances en premier (cache layer)
+# Copier les dependances en premier (meilleur cache Docker)
 COPY composer.json composer.lock ./
-
-# Installer les dépendances sans les scripts (pas de .env encore)
-RUN composer install --no-scripts --no-autoloader --prefer-dist --no-progress
+RUN composer install --no-scripts --no-autoloader --prefer-dist --no-progress --no-dev
 
 # Copier le reste du projet
 COPY . .
 
 # Finaliser l'autoloader
-RUN composer dump-autoload --optimize
+RUN composer dump-autoload --optimize --no-dev
 
-# Copier .env.example si .env n'existe pas
-RUN cp -n .env.example .env || true
-
-# Générer la clé Laravel
-RUN php artisan key:generate --force
-
-# Permissions sur storage et cache
-RUN chmod -R 775 storage bootstrap/cache
+# Permissions
+RUN chmod -R 775 storage bootstrap/cache \
+    && chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
 
 EXPOSE 8000
 
-CMD php artisan serve --host=0.0.0.0 --port=8000
+# Script de demarrage
+CMD sh -c "[ -f .env ] || cp .env.example .env \
+  && php artisan key:generate --force \
+  && php artisan config:clear \
+  && php artisan migrate --force \
+  && php artisan serve --host=0.0.0.0 --port=8000"

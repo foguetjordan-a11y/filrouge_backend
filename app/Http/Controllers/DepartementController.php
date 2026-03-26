@@ -24,8 +24,9 @@ class DepartementController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'nom' => 'required|string|max:255|unique:departements,nom',
-            'description' => 'nullable|string',
+            'nom'              => 'required|string|max:255|unique:departements,nom',
+            'code'             => 'required|string|max:20|unique:departements,code',
+            'description'      => 'nullable|string',
             'chef_departement' => 'nullable|string|max:255',
         ]);
 

@@ -13,9 +13,9 @@ return new class extends Migration {
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('filiere_id')->constrained()->cascadeOnDelete();
             $table->foreignId('niveau_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('annee_academique_id')->constrained('academic_years')->cascadeOnDelete();
+            $table->foreignId('annee_academique_id')->nullable()->constrained('academic_years')->nullOnDelete();
 
-            $table->date('date_enrollement');
+            $table->date('date_enrollement')->nullable();
             $table->enum('statut', ['en_attente', 'valide', 'rejete'])->default('en_attente');
 
             $table->timestamps();

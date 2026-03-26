@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('departements', function (Blueprint $table) {
-            $table->text('description')->nullable()->after('nom');
-            $table->string('chef_departement')->nullable()->after('description');
+            if (!Schema::hasColumn('departements', 'description')) {
+                $table->text('description')->nullable()->after('nom');
+            }
+            if (!Schema::hasColumn('departements', 'chef_departement')) {
+                $table->string('chef_departement')->nullable()->after('description');
+            }
         });
     }
 

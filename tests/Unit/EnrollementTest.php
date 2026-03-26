@@ -60,6 +60,12 @@ class EnrollementTest extends TestCase
             'role_id' => 3,
             'status' => 'approved'
         ]);
+
+        // Second utilisateur pour les tests avec plusieurs enrollements
+        $this->user2 = User::factory()->create([
+            'role_id' => 3,
+            'status' => 'approved'
+        ]);
     }
 
     /**
@@ -142,17 +148,17 @@ class EnrollementTest extends TestCase
         ]);
 
         $approvedEnrollment = Enrollement::create([
-            'user_id' => $this->user->id,
-            'filiere_id' => $this->filiere->id,
-            'niveau_id' => $this->niveau->id,
+            'user_id'          => User::factory()->create(['role_id' => 3, 'status' => 'approved'])->id,
+            'filiere_id'       => $this->filiere->id,
+            'niveau_id'        => $this->niveau->id,
             'academic_year_id' => $this->academicYear->id,
-            'nom' => 'Smith',
-            'prenom' => 'Jane',
-            'date_naissance' => '2001-01-01',
-            'lieu_naissance' => 'Douala',
-            'telephone' => '237987654321',
-            'adresse' => '456 Rue Test',
-            'status' => 'approved'
+            'nom'              => 'Smith',
+            'prenom'           => 'Jane',
+            'date_naissance'   => '2001-01-01',
+            'lieu_naissance'   => 'Douala',
+            'telephone'        => '237987654321',
+            'adresse'          => '456 Rue Test',
+            'status'           => 'approved',
         ]);
 
         $this->assertTrue($pendingEnrollment->isPending());
@@ -205,7 +211,7 @@ class EnrollementTest extends TestCase
         ]);
 
         $approvedEnrollment = Enrollement::create([
-            'user_id' => $this->user->id,
+            'user_id' => $this->user2->id,
             'filiere_id' => $this->filiere->id,
             'niveau_id' => $this->niveau->id,
             'academic_year_id' => $this->academicYear->id,
@@ -242,7 +248,7 @@ class EnrollementTest extends TestCase
         ]);
 
         $enrollmentWithPayment = Enrollement::create([
-            'user_id' => $this->user->id,
+            'user_id' => $this->user2->id,
             'filiere_id' => $this->filiere->id,
             'niveau_id' => $this->niveau->id,
             'academic_year_id' => $this->academicYear->id,
@@ -266,32 +272,34 @@ class EnrollementTest extends TestCase
     {
         // Créer le premier enrollement
         Enrollement::create([
-            'user_id' => $this->user->id,
-            'filiere_id' => $this->filiere->id,
-            'niveau_id' => $this->niveau->id,
-            'academic_year_id' => $this->academicYear->id,
-            'nom' => 'Doe',
-            'prenom' => 'John',
-            'date_naissance' => '2000-01-01',
-            'lieu_naissance' => 'Yaoundé',
-            'telephone' => '237123456789',
-            'adresse' => '123 Rue Test'
+            'user_id'              => $this->user->id,
+            'filiere_id'           => $this->filiere->id,
+            'niveau_id'            => $this->niveau->id,
+            'academic_year_id'     => $this->academicYear->id,
+            'annee_academique_id'  => $this->academicYear->id,
+            'nom'                  => 'Doe',
+            'prenom'               => 'John',
+            'date_naissance'       => '2000-01-01',
+            'lieu_naissance'       => 'Yaoundé',
+            'telephone'            => '237123456789',
+            'adresse'              => '123 Rue Test',
         ]);
 
-        // Tenter de créer un doublon (doit échouer)
-        $this->expectException(\Illuminate\Database\QueryException::class);
+        // Tenter de créer un doublon (doit échouer via contrainte unique_user_academic_year)
+        $this->expectException(\Illuminate\Database\UniqueConstraintViolationException::class);
 
         Enrollement::create([
-            'user_id' => $this->user->id,
-            'filiere_id' => $this->filiere->id,
-            'niveau_id' => $this->niveau->id,
-            'academic_year_id' => $this->academicYear->id,
-            'nom' => 'Doe',
-            'prenom' => 'John',
-            'date_naissance' => '2000-01-01',
-            'lieu_naissance' => 'Yaoundé',
-            'telephone' => '237123456789',
-            'adresse' => '123 Rue Test'
+            'user_id'              => $this->user->id,
+            'filiere_id'           => $this->filiere->id,
+            'niveau_id'            => $this->niveau->id,
+            'academic_year_id'     => $this->academicYear->id,
+            'annee_academique_id'  => $this->academicYear->id,
+            'nom'                  => 'Doe',
+            'prenom'               => 'John',
+            'date_naissance'       => '2000-01-01',
+            'lieu_naissance'       => 'Yaoundé',
+            'telephone'            => '237123456789',
+            'adresse'              => '123 Rue Test',
         ]);
     }
 
@@ -316,7 +324,7 @@ class EnrollementTest extends TestCase
         ]);
 
         $approved = Enrollement::create([
-            'user_id' => $this->user->id,
+            'user_id' => $this->user2->id,
             'filiere_id' => $this->filiere->id,
             'niveau_id' => $this->niveau->id,
             'academic_year_id' => $this->academicYear->id,

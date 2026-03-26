@@ -16,10 +16,9 @@ class UserTest extends TestCase
     {
         parent::setUp();
         
-        // Créer les rôles de base
-        Role::create(['nom' => 'admin', 'libelle' => 'Administrateur']);
-        Role::create(['nom' => 'gestion', 'libelle' => 'Gestionnaire']);
-        Role::create(['nom' => 'etudiant', 'libelle' => 'Étudiant']);
+        Role::create(['nom' => 'admin',    'libelle' => 'Administrateur', 'name' => 'admin',    'guard_name' => 'web']);
+        Role::create(['nom' => 'gestion',  'libelle' => 'Gestionnaire',   'name' => 'gestion',  'guard_name' => 'web']);
+        Role::create(['nom' => 'etudiant', 'libelle' => 'Étudiant',       'name' => 'etudiant', 'guard_name' => 'web']);
     }
 
     /**
@@ -48,8 +47,9 @@ class UserTest extends TestCase
             'role_id' => 3
         ]);
 
-        $this->assertInstanceOf(Role::class, $user->role);
-        $this->assertEquals('etudiant', $user->role->nom);
+        $roleModel = $user->role()->first();
+        $this->assertInstanceOf(Role::class, $roleModel);
+        $this->assertEquals('etudiant', $roleModel->nom);
     }
 
     /**
@@ -97,9 +97,9 @@ class UserTest extends TestCase
      */
     public function test_user_role_methods(): void
     {
-        $admin = User::factory()->create(['role_id' => 1]);
-        $gestion = User::factory()->create(['role_id' => 2]);
-        $etudiant = User::factory()->create(['role_id' => 3]);
+        $admin    = User::factory()->create(['role' => 'admin',    'role_id' => 1]);
+        $gestion  = User::factory()->create(['role' => 'gestion',  'role_id' => 2]);
+        $etudiant = User::factory()->create(['role' => 'etudiant', 'role_id' => 3]);
 
         $this->assertTrue($admin->isAdmin());
         $this->assertFalse($admin->isGestion());
@@ -153,7 +153,8 @@ class UserTest extends TestCase
     public function test_full_name_attribute(): void
     {
         $user = User::factory()->create([
-            'name' => 'John Doe'
+            'nom'    => 'Doe',
+            'prenom' => 'John',
         ]);
 
         $this->assertEquals('John Doe', $user->full_name);
