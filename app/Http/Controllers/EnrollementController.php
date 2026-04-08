@@ -161,6 +161,13 @@ class EnrollementController extends Controller
 
             DB::commit();
 
+            Log::info('Nouvel enrollement soumis', [
+                'enrollement_id' => $enrollement->id,
+                'user_id'        => $user->id,
+                'filiere_id'     => $validated['filiere_id'],
+                'niveau_id'      => $validated['niveau_id'],
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Enrôlement effectué avec succès ! Votre dossier est en cours de traitement par l\'administration.',
