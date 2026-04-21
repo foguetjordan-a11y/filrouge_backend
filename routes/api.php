@@ -21,6 +21,9 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
+use Prometheus\CollectorRegistry;
+use Prometheus\Storage\InMemory;
+use Prometheus\RenderTextFormat;
 
 // ─────────────────────────────────────────────────────────────────
 // Routes publiques (sans authentification)
@@ -28,9 +31,52 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/test', fn () => response()->json(['success' => true, 'message' => 'API OK']));
 
+// ─────────────────────────────────────────────────────────────────
+// Metriques Prometheus — format text/plain
+// ─────────────────────────────────────────────────────────────────
+Route::get('/metrics', function () {
+    $uptime  = time() - filemtime(base_path('bootstrap/cache'));
+    $users   = 0;
+    $enrolls = 0;
+    $payments = 0;
+
+    try {
+        $users    = \App\Models\User::count();
+        $enrolls  = \App\Models\Enrollement::count();
+        $payments = \App\Models\Payment::count();
+    } catch (\Exception $e) {
+        // DB non disponible — on retourne quand meme les metriques de base
+    }
+
+    $metrics = implode("\n", [
+        '# HELP laravel_app_info Informations sur l\'application',
+        '# TYPE laravel_app_info gauge',
+        'laravel_app_info{version="' . app()->version() . '",env="' . app()->environment() . '"} 1',
+        '',
+        '# HELP laravel_users_total Nombre total d\'utilisateurs',
+        '# TYPE laravel_users_total gauge',
+        "laravel_users_total {$users}",
+        '',
+        '# HELP laravel_enrollements_total Nombre total d\'enrollements',
+        '# TYPE laravel_enrollements_total gauge',
+        "laravel_enrollements_total {$enrolls}",
+        '',
+        '# HELP laravel_payments_total Nombre total de paiements',
+        '# TYPE laravel_payments_total gauge',
+        "laravel_payments_total {$payments}",
+        '',
+        '# HELP laravel_up Application disponible (1=OK, 0=KO)',
+        '# TYPE laravel_up gauge',
+        'laravel_up 1',
+        '',
+    ]);
+
+    return response($metrics, 200)
+        ->header('Content-Type', 'text/plain; version=0.0.4; charset=utf-8');
+});
+
 // Health check & monitoring
-Route::get('/health', function () {
-    $checks = ['database' => false, 'storage' => false, 'cache' => false];
+Route::get('/health', function () {    $checks = ['database' => false, 'storage' => false, 'cache' => false];
 
     try {
         DB::connection()->getPdo();
@@ -249,3 +295,26 @@ Route::middleware(['auth:sanctum', 'check.role:etudiant', 'check.approved'])->gr
     Route::get('/matricule/my', [MatriculeController::class, 'myMatricule']);
     Route::get('/matricule/eligibility', [MatriculeController::class, 'checkEligibility']);
 });
+
+
+Route::get('/metrics', function () {
+
+    $registry = new CollectorRegistry(new InMemory());
+
+    // Créer un compteur
+    $counter = $registry->registerCounter(
+        'app',
+        'http_requests_total',
+        'Total HTTP Requests',
+        ['method', 'endpoint']
+    );
+
+    // Incrémenter
+    $counter->inc(['GET', '/api/metrics']);
+
+    // Affichage
+    $renderer = new RenderTextFormat();
+    return response($renderer->render($registry->getMetricFamilySamples()))
+        ->header('Content-Type', RenderTextFormat::MIME_TYPE);
+});
+

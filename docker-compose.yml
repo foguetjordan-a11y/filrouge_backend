@@ -14,39 +14,26 @@ services:
       APP_ENV: local
       APP_DEBUG: "true"
       APP_URL: "http://localhost:8000"
-      # APP_KEY sera genere automatiquement au demarrage si vide
       APP_KEY: ""
-
-      # Base de donnees
       DB_CONNECTION: mysql
       DB_HOST: mysql
       DB_PORT: 3306
       DB_DATABASE: laravel
       DB_USERNAME: root
       DB_PASSWORD: root
-
-      # Sessions et cache
       SESSION_DRIVER: database
       SESSION_LIFETIME: 120
       CACHE_STORE: database
       QUEUE_CONNECTION: sync
-
-      # Logs vers stderr (visibles avec docker compose logs app)
       LOG_CHANNEL: stderr
       LOG_LEVEL: debug
-
-      # Mail
       MAIL_MAILER: log
-
-      # Filesystem
       FILESYSTEM_DISK: local
-
     depends_on:
       mysql:
         condition: service_healthy
     restart: on-failure
     volumes:
-      # Persister les logs et fichiers uploadés
       - app_storage:/app/storage/app/public
       - app_logs:/app/storage/logs
     healthcheck:
@@ -77,7 +64,46 @@ services:
       retries: 10
       start_period: 30s
 
+  # ─────────────────────────────────────────
+  # Prometheus — collecte des metriques
+  # ─────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    depends_on:
+      - app
+
+  # ─────────────────────────────────────────
+  # Grafana — visualisation des metriques
+  # ─────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+
 volumes:
   mysql_data:
   app_storage:
   app_logs:
+  prometheus_data:
+  grafana_data:
