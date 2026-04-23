@@ -45,6 +45,8 @@ services:
 
   # ─────────────────────────────────────────
   # Service MySQL 8
+  # Port non expose — accessible uniquement
+  # depuis les autres conteneurs Docker
   # ─────────────────────────────────────────
   mysql:
     image: mysql:8
@@ -53,8 +55,6 @@ services:
       MYSQL_DATABASE: laravel
       MYSQL_ROOT_PASSWORD: root
       MYSQL_ROOT_HOST: "%"
-    ports:
-      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
@@ -68,7 +68,7 @@ services:
   # Prometheus — collecte des metriques
   # ─────────────────────────────────────────
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.51.0
     restart: unless-stopped
     ports:
       - "9090:9090"
@@ -84,10 +84,28 @@ services:
       - app
 
   # ─────────────────────────────────────────
+  # Node Exporter — metriques systeme
+  # CPU, RAM, disque, reseau
+  # ─────────────────────────────────────────
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    restart: unless-stopped
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+
+  # ─────────────────────────────────────────
   # Grafana — visualisation des metriques
   # ─────────────────────────────────────────
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:10.4.0
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -107,3 +125,4 @@ volumes:
   app_logs:
   prometheus_data:
   grafana_data:
+  node_exporter_data:

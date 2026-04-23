@@ -3,14 +3,22 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  # Metriques de l'application Laravel via /api/metrics
+
+  # ── Job 1 : Application Laravel ──────────────────────────────
   - job_name: 'laravel-app'
     static_configs:
       - targets: ['app:8000']
     metrics_path: '/api/metrics'
     scrape_interval: 30s
 
-  # Metriques de Prometheus lui-meme
+  # ── Job 2 : Node Exporter (metriques systeme) ─────────────────
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 15s
+
+  # ── Job 3 : Prometheus lui-meme ───────────────────────────────
   - job_name: 'prometheus'
     static_configs:
       - targets: ['localhost:9090']
+    scrape_interval: 15s
