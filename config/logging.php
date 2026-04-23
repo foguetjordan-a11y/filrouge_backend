@@ -127,6 +127,17 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        // ── Canal Logstash (ELK Stack) ────────────────────────────
+        'logstash' => [
+            'driver'  => 'monolog',
+            'level'   => env('LOG_LEVEL', 'debug'),
+            'handler' => \Monolog\Handler\SocketHandler::class,
+            'handler_with' => [
+                'connectionString' => 'udp://logstash:5000',
+            ],
+            'formatter' => \Monolog\Formatter\JsonFormatter::class,
+        ],
+
     ],
 
 ];

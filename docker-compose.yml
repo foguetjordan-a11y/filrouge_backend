@@ -80,8 +80,6 @@ services:
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
-    depends_on:
-      - app
 
   # ─────────────────────────────────────────
   # Node Exporter — metriques systeme
@@ -108,7 +106,7 @@ services:
     image: grafana/grafana:10.4.0
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3100:3000"
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
@@ -116,8 +114,44 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+
+  # ─────────────────────────────────────────
+  # ELK Stack — centralisation des logs
+  # ─────────────────────────────────────────
+
+  elasticsearch:
+    image: elasticsearch:8.12.0
+    restart: unless-stopped
+    ports:
+      - "9200:9200"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+
+  logstash:
+    image: logstash:8.12.0
+    restart: unless-stopped
+    ports:
+      - "5044:5044"
+      - "5000:5000/udp"
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
+      - ./storage/logs:/var/log/laravel
     depends_on:
-      - prometheus
+      - elasticsearch
+
+  kibana:
+    image: kibana:8.12.0
+    restart: unless-stopped
+    ports:
+      - "5601:5601"
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
 
 volumes:
   mysql_data:
@@ -126,3 +160,4 @@ volumes:
   prometheus_data:
   grafana_data:
   node_exporter_data:
+  elasticsearch_data:
