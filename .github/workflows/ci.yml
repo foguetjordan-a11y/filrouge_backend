@@ -182,3 +182,4 @@ jobs:
   #   needs: docker-build
   #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
   #   ... (activer apres configuration des secrets O2Switch)
+# Update CI test 05/25/2026 16:06:33

@@ -10,3 +10,4 @@ permissions:
 jobs:
   help-wanted:
     uses: laravel/.github/.github/workflows/issues.yml@main
+# Update issues 05/25/2026 16:07:11
